@@ -7,6 +7,9 @@
 int yylex(void);
 void yyerror(char *);
 void warning(char *, char *);
+
+char *progname;
+int lineno = 1;
 %}
 
 %token NUMBER
@@ -18,7 +21,8 @@ void warning(char *, char *);
 %%
 list
 	: /* nothing */
-	| list expr '\n' { printf("\t%.8g\n", $2); }
+	| list '\n' { printf("[%d] ", lineno); }
+	| list expr '\n' { printf("\t%.8g\n[%d] ", $2, ++lineno); }
 	;
 
 expr
@@ -34,11 +38,9 @@ expr
 	;
 %%
 
-char *progname;
-int lineno = 1;
-
 int main(int argc, char *argv[]) {
 	progname = argv[0];
+	printf("[1] ");
 	yyparse();
 }
 
@@ -54,9 +56,6 @@ int yylex() {
 		ungetc(c, stdin);
 		scanf("%lf", &yylval);
 		return NUMBER;
-	}
-	if (c == '\n') {
-		lineno++;
 	}
 	return c;
 }
