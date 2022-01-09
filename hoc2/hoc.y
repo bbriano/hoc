@@ -33,6 +33,7 @@ jmp_buf begin;
 list
 	: /* nothing */
 	| list '\n' { printf("[%d] ", lineno); }
+	| list expr ';' { printf("\t%.8g\n", $2); }
 	| list expr '\n' { printf("\t%.8g\n[%d] ", $2, ++lineno); }
 	| list error '\n' { yyerrok; }
 	;
