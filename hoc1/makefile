@@ -1,4 +1,4 @@
-hoc1: hoc.o
-	cc hoc.o -o hoc1
+hoc: hoc.o
+	cc hoc.o -o hoc
 clean:
-	rm -rf hoc.o hoc1
+	rm -rf hoc.o hoc
