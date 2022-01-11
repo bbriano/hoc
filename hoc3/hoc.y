@@ -3,11 +3,14 @@
 #include <ctype.h>
 #include <signal.h>
 #include <setjmp.h>
+#include "hoc.h"
+
+double Pow();
+void init();
 
 int yylex(void);
 void yyerror(char *);
 void warning(char *, char *);
-void execerror(char *, char *);
 void fpecatch();
 
 char *progname;
@@ -18,30 +21,45 @@ jmp_buf begin;
 
 %union {
 	double val;
-	int index;
+	Symbol *sym;
 }
+
 %token <val> NUMBER
-%token <index> VAR
-%type <val> expr
+%token <sym> VAR BLTIN UNDEF
+%type <val> expr asgn
+
 %right '='
 %left '+' '-'
 %left '*' '/' '%'
 %left UNARYMINUS
 %left UNARYPLUS
+%right '^' /* exponentiation */
 
 %%
 list
 	: /* nothing */
 	| list '\n' { printf("[%d] ", lineno); }
+	| list asgn ';'
+	| list asgn '\n' { printf("[%d] ", ++lineno); }
 	| list expr ';' { printf("\t%.8g\n", $2); }
 	| list expr '\n' { printf("\t%.8g\n[%d] ", $2, ++lineno); }
 	| list error '\n' { yyerrok; }
 	;
 
+asgn
+	: VAR '=' expr { $$ = $1->u.val = $3; $1->type = VAR; }
+	;
+
 expr
 	: NUMBER { $$ = $1; }
-	| VAR { $$ = mem[$1]; }
-	| VAR '=' expr { $$ = mem[$1] = $3; }
+	| VAR {
+		if ($1->type == UNDEF) {
+			execerror("undefined variable", $1->name);
+		}
+		$$ = $1->u.val;
+	}
+	| asgn
+	| BLTIN '(' expr ')' { $$ = (*($1->u.ptr))($3); }
 	| expr '+' expr { $$ = $1 + $3; }
 	| expr '-' expr { $$ = $1 - $3; }
 	| expr '*' expr { $$ = $1 * $3; }
@@ -51,6 +69,7 @@ expr
 		}
 		$$ = $1 / $3;
 	}
+	| expr '^' expr { $$ = Pow($1, $3); }
 	| expr '%' expr { $$ = (int) $1 % (int) $3; }
 	| '(' expr ')' { $$ = $2; }
 	| '-' expr %prec UNARYMINUS { $$ = -$2; }
@@ -60,6 +79,7 @@ expr
 
 int main(int argc, char *argv[]) {
 	progname = argv[0];
+	init();
 	printf("[1] ");
 	setjmp(begin);
 	signal(SIGFPE, fpecatch);
@@ -79,9 +99,19 @@ int yylex() {
 		scanf("%lf", &yylval.val);
 		return NUMBER;
 	}
-	if (islower(c)) {
-		yylval.index = c - 'a';
-		return VAR;
+	if (isalpha(c)) {
+		Symbol *s;
+		char sbuf[100], *p = sbuf;
+		do {
+			*p++ = c;
+		} while ((c = getchar()) != EOF && isalnum(c));
+		ungetc(c, stdin);
+		*p = '\0';
+		if ((s = lookup(sbuf)) == NULL) {
+			s = install(sbuf, UNDEF, 0.0);
+		}
+		yylval.sym = s;
+		return s->type == UNDEF ? VAR : s->type;
 	}
 	return c;
 }
