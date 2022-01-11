@@ -86,6 +86,7 @@ int main(int argc, char *argv[]) {
 	yyparse();
 }
 
+/* no need since using lex
 int yylex() {
 	int c;
 
@@ -115,6 +116,7 @@ int yylex() {
 	}
 	return c;
 }
+*/
 
 /* yyerror is called for yacc syntax error */
 void yyerror(char *s) {
