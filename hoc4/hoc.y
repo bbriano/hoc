@@ -5,8 +5,16 @@
 #include <setjmp.h>
 #include "hoc.h"
 
-double Pow();
-void init();
+#define code2(c1, c2) code(c1); code(c2)
+#define code3(c1, c2, c3) code(c1); code(c2); code(c3)
+
+double Pow(double, double); /* math.c */
+void init(void); /* init.c */
+
+/* code.c */
+void initcode(void);
+void execute(Inst *);
+Inst *code(Inst);
 
 int yylex(void);
 void yyerror(char *);
@@ -20,14 +28,11 @@ jmp_buf begin;
 %}
 
 %union {
-	double val;
-	Symbol *sym;
+	Symbol *sym; /* symbol table pointer */
+	Inst *inst; /* machine instruction */
 }
 
-%token <val> NUMBER
-%token <sym> VAR BLTIN UNDEF
-%type <val> expr asgn
-
+%token <sym> NUMBER VAR BLTIN UNDEF
 %right '='
 %left '+' '-'
 %left '*' '/' '%'
@@ -38,55 +43,43 @@ jmp_buf begin;
 %%
 list
 	: /* nothing */
-	| list '\n' { printf("[%d] ", lineno); }
-	| list asgn ';'
-	| list asgn '\n' { printf("[%d] ", ++lineno); }
-	| list expr ';' { printf("\t%.8g\n", $2); }
-	| list expr '\n' { printf("\t%.8g\n[%d] ", $2, ++lineno); }
+	| list '\n'
+	| list asgn '\n' { code2(pop, STOP); return 1; }
+	| list expr '\n' { code2(print, STOP); return 1; }
 	| list error '\n' { yyerrok; }
 	;
 
 asgn
-	: VAR '=' expr { $$ = $1->u.val = $3; $1->type = VAR; }
+	: VAR '=' expr { code3(varpush, (Inst) $1, assign); }
 	;
 
 expr
-	: NUMBER { $$ = $1; }
-	| VAR {
-		if ($1->type == UNDEF) {
-			execerror("undefined variable", $1->name);
-		}
-		$$ = $1->u.val;
-	}
+	: NUMBER { code2(constpush, (Inst) $1); }
+	| VAR { code3(varpush, (Inst) $1, eval); }
 	| asgn
-	| BLTIN '(' expr ')' { $$ = (*($1->u.ptr))($3); }
-	| expr '+' expr { $$ = $1 + $3; }
-	| expr '-' expr { $$ = $1 - $3; }
-	| expr '*' expr { $$ = $1 * $3; }
-	| expr '/' expr {
-		if ($3 == 0.0) {
-			execerror("division by zero", "");
-		}
-		$$ = $1 / $3;
-	}
-	| expr '^' expr { $$ = Pow($1, $3); }
-	| expr '%' expr { $$ = (int) $1 % (int) $3; }
-	| '(' expr ')' { $$ = $2; }
-	| '-' expr %prec UNARYMINUS { $$ = -$2; }
-	| '+' expr %prec UNARYPLUS { $$ = $2; }
+	| BLTIN '(' expr ')' { code2(bltin, (Inst) $1->u.ptr); }
+	| '(' expr ')'
+	| expr '+' expr { code(add); }
+	| expr '-' expr { code(sub); }
+	| expr '*' expr { code(mul); }
+	| expr '/' expr { code(divide); }
+	| expr '^' expr { code(power); }
+	| expr '%' expr { code(mod); }
+	| '-' expr %prec UNARYMINUS { code(negate); }
+	| '+' expr %prec UNARYPLUS
 	;
 %%
 
 int main(int argc, char *argv[]) {
 	progname = argv[0];
 	init();
-	printf("[1] ");
 	setjmp(begin);
 	signal(SIGFPE, fpecatch);
-	yyparse();
+	for (initcode(); yyparse(); initcode()) {
+		execute(prog);
+	}
 }
 
-/* no need since using lex
 int yylex() {
 	int c;
 
@@ -96,8 +89,10 @@ int yylex() {
 		return 0;
 	}
 	if (c == '.' || isdigit(c)) {
+		double d;
 		ungetc(c, stdin);
-		scanf("%lf", &yylval.val);
+		scanf("%lf", &d);
+		yylval.sym = install("", NUMBER, d);
 		return NUMBER;
 	}
 	if (isalpha(c)) {
@@ -116,7 +111,6 @@ int yylex() {
 	}
 	return c;
 }
-*/
 
 /* yyerror is called for yacc syntax error */
 void yyerror(char *s) {
