@@ -8,22 +8,13 @@
 #define code2(c1, c2) code(c1); code(c2)
 #define code3(c1, c2, c3) code(c1); code(c2); code(c3)
 
-double Pow(double, double); /* math.c */
-void init(void); /* init.c */
-
-/* code.c */
-void initcode(void);
-void execute(Inst *);
-Inst *code(Inst);
-
 int yylex(void);
 void yyerror(char *);
 void warning(char *, char *);
-void fpecatch();
+void fpecatch(void);
 
 char *progname;
 int lineno = 1;
-double mem[26];
 jmp_buf begin;
 %}
 

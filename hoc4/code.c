@@ -2,8 +2,6 @@
 #include "hoc.h"
 #include "y.tab.h"
 
-double Pow(double x, double y); /* math.c */
-
 #define NSTACK 256
 static Datum stack[NSTACK]; /* the stack */
 static Datum *stackp; /* next free spot on stack */
@@ -48,7 +46,7 @@ Inst *code(Inst f) {
 /* run the machine */
 void execute(Inst *p) {
 	for (pc = p; *pc != STOP; ) {
-		(*(*pc++))();
+		(*pc++)();
 	}
 }
 

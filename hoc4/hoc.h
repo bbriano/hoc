@@ -19,12 +19,23 @@ typedef union Datum {
 Datum pop(void);
 
 /* machine instruction */
-typedef void (*Inst)();
+typedef void (*Inst)(void);
 #define STOP (Inst) 0
 
 extern Inst prog[];
-#undef div
 void eval(void), add(void), sub(void), mul(void), divide(void), mod(void), negate(void), power(void);
 void assign(void), bltin(void), varpush(void), constpush(void), print(void);
 
+/* code.c */
+void initcode(void);
+void execute(Inst *);
+Inst *code(Inst);
+
+/* hoc.y */
 void execerror(char *, char *);
+
+/* init.c */
+void init(void);
+
+/* math.c */
+double Pow(double, double);
