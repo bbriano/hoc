@@ -11,7 +11,7 @@
 int yylex(void);
 void yyerror(char *);
 void warning(char *, char *);
-void fpecatch(void);
+void fpecatch(int);
 
 char *progname;
 int lineno = 1;
@@ -35,7 +35,7 @@ jmp_buf begin;
 list
 	: /* nothing */
 	| list '\n'
-	| list asgn '\n' { code2(pop, STOP); return 1; }
+	| list asgn '\n' { code2((Inst)pop, STOP); return 1; }
 	| list expr '\n' { code2(print, STOP); return 1; }
 	| list error '\n' { yyerrok; }
 	;
@@ -122,6 +122,6 @@ void execerror(char *s, char *t) {
 }
 
 /* catch floating point exceptions */
-void fpecatch() {
+void fpecatch(int signum) {
 	execerror("floating point exception", NULL);
 }
