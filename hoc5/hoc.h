@@ -22,9 +22,11 @@ Datum pop(void);
 typedef void (*Inst)(void);
 #define STOP (Inst) 0
 
-extern Inst prog[];
+extern Inst prog[], *progp, *code(Inst);
 void eval(void), add(void), sub(void), mul(void), divide(void), mod(void), negate(void), power(void);
-void assign(void), bltin(void), varpush(void), constpush(void), print(void);
+void assign(void), bltin(void), varpush(void), constpush(void), print(void), prexpr(void);
+void gt(void), lt(void), eq(void), ge(void), le(void), ne(void);
+void and(void), or(void), not(void), ifcode(void), whilecode(void);
 
 /* code.c */
 void initcode(void);
