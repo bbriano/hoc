@@ -1,0 +1,29 @@
+Hoc is a programmable desktop calculator based on Chapter 8 of "The
+Unix Programming Environment" book by Brian Kernighan and Rob Pike.
+
+EXAMPLES
+	/* Basics arithmetic (+ - * / % ()) */
+	12*(34 - 56/7) % 89
+		45
+
+	/* Variables */
+	price = 4.20
+	qty = 13
+	total = (price * qty) * 1.1
+	total
+		60.06
+
+	/* Control flow */
+	a=0
+	b=1
+	while (b <= 100) {
+		tmp = a+b
+		a = b
+		b = tmp
+	}
+	b
+		144 /* smallest fibonacci number greater than or equal to 100 */
+
+INSTALL
+	$ cd hoc5
+	$ make
